@@ -8,6 +8,7 @@ import android.os.SystemClock;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.FloatBuffer;
+import java.nio.ShortBuffer;
 
 import javax.microedition.khronos.egl.EGLConfig;
 import javax.microedition.khronos.opengles.GL10;
@@ -24,6 +25,9 @@ public class MainRenderer implements GLSurfaceView.Renderer{
     private final FloatBuffer mTriangle2Vertices;
     private final FloatBuffer mTriangle3Vertices;
 
+    private final FloatBuffer mSquareVertices;
+    private final ShortBuffer drawListBuffer;
+
     // New class definitions
     /**
      * Store the view matrix. This can be thought of as our camera. This matrix transforms world space to eye space;
@@ -31,9 +35,10 @@ public class MainRenderer implements GLSurfaceView.Renderer{
      */
     private float[] mViewMatrix = new float[16];
 
+
+    //TODO: Why are we hardcoding this to 4
     /** How many bytes per float. */
     private final int mBytesPerFloat = 4;
-
 
     //New class members
     /** This will be used to pass in the transformation matrix. */
@@ -44,8 +49,6 @@ public class MainRenderer implements GLSurfaceView.Renderer{
 
     /** This will be used to pass in model color information. */
     private int mColorHandle;
-
-
 
     // New class members
     /** Store the projection matrix. This is used to project the scene onto a 2D viewport. */
@@ -75,6 +78,8 @@ public class MainRenderer implements GLSurfaceView.Renderer{
     /** Size of the color data in elements. */
     private final int mColorDataSize = 4;
 
+    private Square mSquare;
+
 
     //Constructor
     public MainRenderer() {
@@ -93,6 +98,32 @@ public class MainRenderer implements GLSurfaceView.Renderer{
                 0.0f, 1.0f, 0.0f, 1.0f
         };
 
+        // This triangle is yellow, cyan, and magenta.
+        final float[] triangle2VerticesData = {
+                // X, Y, Z,
+                // R, G, B, A
+                -0.5f, -0.25f, 0.0f,
+                1.0f, 1.0f, 0.0f, 1.0f,
+
+                0.5f, -0.25f, 0.0f,
+                0.0f, 1.0f, 1.0f, 1.0f,
+
+                0.0f, 0.559016994f, 0.0f,
+                1.0f, 0.0f, 1.0f, 1.0f};
+
+        // This triangle is white, gray, and black.
+        final float[] triangle3VerticesData = {
+                // X, Y, Z,
+                // R, G, B, A
+                -0.5f, -0.25f, 0.0f,
+                1.0f, 1.0f, 1.0f, 1.0f,
+
+                0.5f, -0.25f, 0.0f,
+                0.5f, 0.5f, 0.5f, 1.0f,
+
+                0.0f, 0.559016994f, 0.0f,
+                0.0f, 0.0f, 0.0f, 1.0f};
+
         //Above code's equivalent is ES1 looks like opengl C++ gc3
 //        glBegin(GL_TRIANGLES);
 //        glVertex3f(-0.5f, -0.25f, 0.0f);
@@ -100,21 +131,70 @@ public class MainRenderer implements GLSurfaceView.Renderer{
 //        ...
 //        glEnd();
 
-        // Initialize the buffers.
+//        final float[] squareCoords[] = {
+//
+//        }
+
+        final float squareCoords[] = {
+                -0.5f,  0.5f, 0.0f,   // top left
+                -0.5f, -0.5f, 0.0f,   // bottom left
+                0.5f, -0.5f, 0.0f,   // bottom right
+                0.5f,  0.5f, 0.0f    // top right?
+        };
+
+        short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
+
+        // Initialize the buffers. for triangles
+        // Initialize vertex byte buffer for shape coordinates
+        // Use the device hardware's native byte order
+        // Create a floating point buffer from the ByteBuffer
         mTriangle1Vertices = ByteBuffer.allocateDirect(triangle1VerticesData.length * mBytesPerFloat)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
 
+        // Add the coordinates to the FloatBuffer
+        // Set the buffer to read the first coordinate
         mTriangle1Vertices.put(triangle1VerticesData).position(0);
 
-        mTriangle2Vertices = ByteBuffer.allocateDirect(triangle1VerticesData.length * mBytesPerFloat)
+        mTriangle2Vertices = ByteBuffer.allocateDirect(triangle2VerticesData.length * mBytesPerFloat)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
 
-        mTriangle2Vertices.put(triangle1VerticesData).position(0);
+        mTriangle2Vertices.put(triangle2VerticesData).position(0);
 
-        mTriangle3Vertices = ByteBuffer.allocateDirect(triangle1VerticesData.length * mBytesPerFloat)
+        mTriangle3Vertices = ByteBuffer.allocateDirect(triangle3VerticesData.length * mBytesPerFloat)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
 
-        mTriangle3Vertices.put(triangle1VerticesData).position(0);
+        mTriangle3Vertices.put(triangle3VerticesData).position(0);
+
+
+        //Square init
+        mSquareVertices = ByteBuffer.allocateDirect(squareCoords.length * 4)
+                .order(ByteOrder.nativeOrder()).asFloatBuffer();
+
+        mSquareVertices.put(squareCoords).position(0);
+
+        // initialize byte buffer for the draw list
+        drawListBuffer = ByteBuffer.allocateDirect(drawOrder.length * 2)
+                .order(ByteOrder.nativeOrder()).asShortBuffer();
+        drawListBuffer.put(drawOrder).position(0);
+
+        //Commented out code below is equivalent to above square init code
+        // initialize vertex byte buffer for shape coordinates
+//        ByteBuffer bb = ByteBuffer.allocateDirect(
+//                // (# of coordinate values * 4 bytes per float)
+//                squareCoords.length * 4);
+//        bb.order(ByteOrder.nativeOrder());
+//        mSquareVertices = bb.asFloatBuffer();
+//        mSquareVertices.put(squareCoords);
+//        mSquareVertices.position(0);
+//
+//        // initialize byte buffer for the draw list
+//        ByteBuffer dlb = ByteBuffer.allocateDirect(
+//                // (# of coordinate values * 2 bytes per short)
+//                drawOrder.length * 2);
+//        dlb.order(ByteOrder.nativeOrder());
+//        drawListBuffer = dlb.asShortBuffer();
+//        drawListBuffer.put(drawOrder);
+//        drawListBuffer.position(0);
     }
 
     //The GL10 passed as parameters in below is only there since ES2 shares the same interface as ES1
@@ -123,6 +203,9 @@ public class MainRenderer implements GLSurfaceView.Renderer{
     //we lose out surface context and it is later recreated by the system
     @Override
     public void onSurfaceCreated(GL10 gl, EGLConfig config) {
+
+        mSquare = new Square();
+
         // Set the background clear color to gray.
         GLES20.glClearColor(0.5f, 0.5f, 0.5f, 0.5f);
 
@@ -315,6 +398,8 @@ public class MainRenderer implements GLSurfaceView.Renderer{
         long time = SystemClock.uptimeMillis() % 10000L;
         float angleInDegrees = (360.0f / 10000.0f) * ((int) time);
 
+        drawSquare(mSquareVertices);
+
         // Draw the triangle facing straight on.
         Matrix.setIdentityM(mModelMatrix, 0);
         Matrix.rotateM(mModelMatrix, 0, angleInDegrees, 0.0f, 0.0f, 1.0f);
@@ -333,6 +418,8 @@ public class MainRenderer implements GLSurfaceView.Renderer{
         Matrix.rotateM(mModelMatrix, 0, 90.0f, 0.0f, 1.0f, 0.0f);
         Matrix.rotateM(mModelMatrix, 0, angleInDegrees, 0.0f, 0.0f, 1.0f);
         drawTriangle(mTriangle3Vertices);
+
+
     }
     /**
      * Draws a triangle from the given vertex data.
@@ -365,5 +452,47 @@ public class MainRenderer implements GLSurfaceView.Renderer{
 
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
         GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
+    }
+
+    //Draws brick on screen
+    private void drawBrick() {
+
+    }
+
+    //Draws the ball
+    private void drawBall() {
+
+    }
+
+    private void drawSquare(final FloatBuffer aTriangleBuffer)
+    {
+        // Pass in the position information
+        aTriangleBuffer.position(mPositionOffset);
+        GLES20.glVertexAttribPointer(mPositionHandle, mPositionDataSize, GLES20.GL_FLOAT, false,
+                mStrideBytes, aTriangleBuffer);
+
+        GLES20.glEnableVertexAttribArray(mPositionHandle);
+
+        // Pass in the color information
+        aTriangleBuffer.position(mColorOffset);
+        GLES20.glVertexAttribPointer(mColorHandle, mColorDataSize, GLES20.GL_FLOAT, false,
+                mStrideBytes, aTriangleBuffer);
+
+        GLES20.glEnableVertexAttribArray(mColorHandle);
+
+        // This multiplies the view matrix by the model matrix, and stores the result in the MVP matrix
+        // (which currently contains model * view).
+        Matrix.multiplyMM(mMVPMatrix, 0, mViewMatrix, 0, mModelMatrix, 0);
+
+        // This multiplies the modelview matrix by the projection matrix, and stores the result in the MVP matrix
+        // (which now contains model * view * projection).
+        Matrix.multiplyMM(mMVPMatrix, 0, mProjectionMatrix, 0, mMVPMatrix, 0);
+
+        GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
+//        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
+        short drawOrder[] = { 0, 1, 2, 0, 2, 3};
+        GLES20.glDrawElements(
+                GLES20.GL_TRIANGLES, drawOrder.length,
+                GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
     }
 }
