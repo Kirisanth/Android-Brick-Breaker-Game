@@ -4,6 +4,7 @@ import android.opengl.GLES20;
 import android.opengl.GLSurfaceView;
 import android.opengl.Matrix;
 import android.os.SystemClock;
+import android.util.Log;
 
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
@@ -20,6 +21,7 @@ import javax.microedition.khronos.opengles.GL10;
  */
 public class MainRenderer implements GLSurfaceView.Renderer{
     // New class members
+    private static final String TAG = "MyGLRenderer";
     /** Store our model data in a float buffer. */
     private final FloatBuffer mTriangle1Vertices;
     private final FloatBuffer mTriangle2Vertices;
@@ -124,7 +126,7 @@ public class MainRenderer implements GLSurfaceView.Renderer{
                 0.0f, 0.559016994f, 0.0f,
                 0.0f, 0.0f, 0.0f, 1.0f};
 
-        //Above code's equivalent is ES1 looks like opengl C++ gc3
+        //Above code's equivalent in ES1 looks like opengl C++ gc3
 //        glBegin(GL_TRIANGLES);
 //        glVertex3f(-0.5f, -0.25f, 0.0f);
 //        glColor3f(1.0f, 0.0f, 0.0f);
@@ -367,6 +369,8 @@ public class MainRenderer implements GLSurfaceView.Renderer{
 
         // Tell OpenGL to use this program when rendering.
         GLES20.glUseProgram(programHandle);
+
+        mSquare   = new Square();
     }
 
     //This is called whenever the surface changes; for example, when switching from portrait to landscape.
@@ -398,7 +402,9 @@ public class MainRenderer implements GLSurfaceView.Renderer{
         long time = SystemClock.uptimeMillis() % 10000L;
         float angleInDegrees = (360.0f / 10000.0f) * ((int) time);
 
-        drawSquare(mSquareVertices);
+//        drawSquare(mSquareVertices);
+
+
 
         // Draw the triangle facing straight on.
         Matrix.setIdentityM(mModelMatrix, 0);
@@ -419,6 +425,7 @@ public class MainRenderer implements GLSurfaceView.Renderer{
         Matrix.rotateM(mModelMatrix, 0, angleInDegrees, 0.0f, 0.0f, 1.0f);
         drawTriangle(mTriangle3Vertices);
 
+        mSquare.draw(mMVPMatrix);
 
     }
     /**
@@ -494,5 +501,48 @@ public class MainRenderer implements GLSurfaceView.Renderer{
         GLES20.glDrawElements(
                 GLES20.GL_TRIANGLES, drawOrder.length,
                 GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
+    }
+
+    /**
+     * Utility method for compiling a OpenGL shader.
+     *
+     * <p><strong>Note:</strong> When developing shaders, use the checkGlError()
+     * method to debug shader coding errors.</p>
+     *
+     * @param type - Vertex or fragment shader type.
+     * @param shaderCode - String containing the shader code.
+     * @return - Returns an id for the shader.
+     */
+    public static int loadShader(int type, String shaderCode){
+
+        // create a vertex shader type (GLES20.GL_VERTEX_SHADER)
+        // or a fragment shader type (GLES20.GL_FRAGMENT_SHADER)
+        int shader = GLES20.glCreateShader(type);
+
+        // add the source code to the shader and compile it
+        GLES20.glShaderSource(shader, shaderCode);
+        GLES20.glCompileShader(shader);
+
+        return shader;
+    }
+
+    /**
+     * Utility method for debugging OpenGL calls. Provide the name of the call
+     * just after making it:
+     *
+     * <pre>
+     * mColorHandle = GLES20.glGetUniformLocation(mProgram, "vColor");
+     * MyGLRenderer.checkGlError("glGetUniformLocation");</pre>
+     *
+     * If the operation is not successful, the check throws an error.
+     *
+     * @param glOperation - Name of the OpenGL call to check.
+     */
+    public static void checkGlError(String glOperation) {
+        int error;
+        while ((error = GLES20.glGetError()) != GLES20.GL_NO_ERROR) {
+            Log.e(TAG, glOperation + ": glError " + error);
+            throw new RuntimeException(glOperation + ": glError " + error);
+        }
     }
 }
