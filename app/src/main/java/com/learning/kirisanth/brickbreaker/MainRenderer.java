@@ -27,9 +27,6 @@ public class MainRenderer implements GLSurfaceView.Renderer{
     private final FloatBuffer mTriangle2Vertices;
     private final FloatBuffer mTriangle3Vertices;
 
-    private final FloatBuffer mSquareVertices;
-    private final ShortBuffer drawListBuffer;
-
     // New class definitions
     /**
      * Store the view matrix. This can be thought of as our camera. This matrix transforms world space to eye space;
@@ -133,18 +130,7 @@ public class MainRenderer implements GLSurfaceView.Renderer{
 //        ...
 //        glEnd();
 
-//        final float[] squareCoords[] = {
-//
-//        }
 
-        final float squareCoords[] = {
-                -0.5f,  0.5f, 0.0f,   // top left
-                -0.5f, -0.5f, 0.0f,   // bottom left
-                0.5f, -0.5f, 0.0f,   // bottom right
-                0.5f,  0.5f, 0.0f    // top right?
-        };
-
-        short drawOrder[] = { 0, 1, 2, 0, 2, 3 }; // order to draw vertices
 
         // Initialize the buffers. for triangles
         // Initialize vertex byte buffer for shape coordinates
@@ -166,37 +152,6 @@ public class MainRenderer implements GLSurfaceView.Renderer{
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
 
         mTriangle3Vertices.put(triangle3VerticesData).position(0);
-
-
-        //Square init
-        mSquareVertices = ByteBuffer.allocateDirect(squareCoords.length * 4)
-                .order(ByteOrder.nativeOrder()).asFloatBuffer();
-
-        mSquareVertices.put(squareCoords).position(0);
-
-        // initialize byte buffer for the draw list
-        drawListBuffer = ByteBuffer.allocateDirect(drawOrder.length * 2)
-                .order(ByteOrder.nativeOrder()).asShortBuffer();
-        drawListBuffer.put(drawOrder).position(0);
-
-        //Commented out code below is equivalent to above square init code
-        // initialize vertex byte buffer for shape coordinates
-//        ByteBuffer bb = ByteBuffer.allocateDirect(
-//                // (# of coordinate values * 4 bytes per float)
-//                squareCoords.length * 4);
-//        bb.order(ByteOrder.nativeOrder());
-//        mSquareVertices = bb.asFloatBuffer();
-//        mSquareVertices.put(squareCoords);
-//        mSquareVertices.position(0);
-//
-//        // initialize byte buffer for the draw list
-//        ByteBuffer dlb = ByteBuffer.allocateDirect(
-//                // (# of coordinate values * 2 bytes per short)
-//                drawOrder.length * 2);
-//        dlb.order(ByteOrder.nativeOrder());
-//        drawListBuffer = dlb.asShortBuffer();
-//        drawListBuffer.put(drawOrder);
-//        drawListBuffer.position(0);
     }
 
     //The GL10 passed as parameters in below is only there since ES2 shares the same interface as ES1
@@ -497,10 +452,6 @@ public class MainRenderer implements GLSurfaceView.Renderer{
 
         GLES20.glUniformMatrix4fv(mMVPMatrixHandle, 1, false, mMVPMatrix, 0);
 //        GLES20.glDrawArrays(GLES20.GL_TRIANGLES, 0, 3);
-        short drawOrder[] = { 0, 1, 2, 0, 2, 3};
-        GLES20.glDrawElements(
-                GLES20.GL_TRIANGLES, drawOrder.length,
-                GLES20.GL_UNSIGNED_SHORT, drawListBuffer);
     }
 
     /**
